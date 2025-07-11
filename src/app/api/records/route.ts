@@ -2,30 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/db';
 import { FormDataInterface } from '@/types/form';
 
-const db = DatabaseService.getInstance('sqlite');
-
-export const runtime = 'nodejs';
-
-
-export async function OPTIONS() {
-    return new Response(null, {
-        status: 200,
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-            'Access-Control-Allow-Headers': '*',
-        },
-    });
-}
-
+// const db = DatabaseService.getInstance(process.env.DB_TYPE as 'sqlite' | 'mysql' || 'sqlite') || 'sqlite';
+const db = DatabaseService.getInstance('sqlite')
 
 export async function GET() {
     try {
+        console.log(db);
         await db.connect();
         const records = await db.getRecords();
         return NextResponse.json(records);
-    } catch (error: any) {
-        return NextResponse.json({ error: `Failed to fetch records: ${error.message}` }, { status: 500 });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
     } finally {
         await db.close();
     }
