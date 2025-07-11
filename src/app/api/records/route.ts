@@ -1,24 +1,24 @@
-export const runtime = 'nodejs';
-
-
 import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/db';
 import { FormDataInterface } from '@/types/form';
 
-// const db = DatabaseService.getInstance(process.env.DB_TYPE as 'sqlite' | 'mysql' || 'sqlite') || 'sqlite';
-const db = DatabaseService.getInstance('sqlite');
+export const runtime = 'nodejs'; // ✅ Force node runtime
+
+const dbType = (process.env.DB_TYPE ?? 'sqlite') as 'sqlite' | 'mysql';
+const db = DatabaseService.getInstance(dbType);
+
+if (!db) throw new Error('DatabaseService failed to initialize');
 
 export async function OPTIONS() {
     return new Response(null, {
-        status: 200,
+        status: 204,
         headers: {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
         },
     });
 }
-
 
 export async function GET() {
     try {
