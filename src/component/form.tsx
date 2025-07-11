@@ -8,8 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { Plus } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { FormDataInterface } from "@/types/form"
-
-
+import Link from "next/link"
 
 export default function RecordForm() {
     const [formData, setFormData] = useState<FormDataInterface>({
@@ -103,6 +102,7 @@ export default function RecordForm() {
                 <div className="text-center py-6">
                     <h1 className="text-3xl font-bold text-gray-900">रेकर्ड व्यवस्थापन प्रणाली</h1>
                     <p className="text-gray-600 mt-2">Record Management System</p>
+                    <Link href={"/records"}>Records</Link>
                 </div>
 
                 {/* Form */}
@@ -130,9 +130,10 @@ export default function RecordForm() {
                                     <Label htmlFor="date">मिति (Date)</Label>
                                     <Input
                                         id="date"
-                                        type="date"
+                                        type="text"
                                         value={formData.date}
                                         onChange={(e) => handleInputChange("date", e.target.value)}
+                                        placeholder="YYYY-MM-DD"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -148,9 +149,10 @@ export default function RecordForm() {
                                     <Label htmlFor="dartaMiti">दर्ता मिति (Darta Date)</Label>
                                     <Input
                                         id="dartaMiti"
-                                        type="date"
+                                        type="text"
                                         value={formData.dartaMiti}
                                         onChange={(e) => handleInputChange("dartaMiti", e.target.value)}
+                                        placeholder="YYYY-MM-DD"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -256,9 +258,10 @@ export default function RecordForm() {
                                         <Label htmlFor="chalaniDate">चलानी मिति (Chalani Date)</Label>
                                         <Input
                                             id="chalaniDate"
-                                            type="date"
+                                            type="text"
                                             value={formData.chalaniDate}
                                             onChange={(e) => handleInputChange("chalaniDate", e.target.value)}
+                                            placeholder="YYYY-MM-DD"
                                         />
                                     </div>
                                     <div className="space-y-2">

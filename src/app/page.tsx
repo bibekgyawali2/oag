@@ -1,6 +1,5 @@
 'use client'
 import RecordForm from "@/component/form";
-import { withAuth } from "@/lib/withAuths";
 
 function Home() {
   return (
@@ -9,4 +8,4 @@ function Home() {
     </>
   );
 }
-export default withAuth(Home);
+export default Home;
