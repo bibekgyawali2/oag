@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }],
+  "rewrites": [], 
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/:path*", 
       "headers": [
         { "key": "Access-Control-Allow-Credentials", "value": "true" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
