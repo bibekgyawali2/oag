@@ -26,7 +26,7 @@ export async function GET() {
         const records = await db.getRecords();
         return NextResponse.json(records);
     } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
+        return NextResponse.json({ error: `Failed to fetch records: ${error}` }, { status: 500 });
     } finally {
         await db.close();
     }
