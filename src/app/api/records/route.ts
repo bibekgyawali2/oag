@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+
+
 import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/db';
 import { FormDataInterface } from '@/types/form';
