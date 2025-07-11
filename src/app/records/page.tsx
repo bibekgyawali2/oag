@@ -213,4 +213,4 @@ function RecordsPage() {
     );
 }
 
-export default withAuth(RecordsPage);
+export default RecordsPage;
