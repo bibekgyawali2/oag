@@ -169,7 +169,7 @@ class MySQLAdapter implements DatabaseAdapter {
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        this.connection.off; // Release connection back to pool
+        // this.connection.off; // Release connection back to pool
     }
 
     async query(sql: string, params: any[] = []): Promise<any> {
