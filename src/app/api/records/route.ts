@@ -2,7 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/db';
 import { FormDataInterface } from '@/types/form';
 
-const db = DatabaseService.getInstance(process.env.DB_TYPE as 'sqlite' | 'mysql' || 'sqlite') || 'sqlite';
+// const db = DatabaseService.getInstance(process.env.DB_TYPE as 'sqlite' | 'mysql' || 'sqlite') || 'sqlite';
+const db = DatabaseService.getInstance('sqlite');
+
+export async function OPTIONS() {
+    return new Response(null, {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+            'Access-Control-Allow-Headers': '*',
+        },
+    });
+}
+
 
 export async function GET() {
     try {
