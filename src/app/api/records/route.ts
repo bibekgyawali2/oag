@@ -2,31 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/db';
 import { FormDataInterface } from '@/types/form';
 
-export const runtime = 'edge';
-
-const dbType = (process.env.DB_TYPE ?? 'sqlite') as 'sqlite' | 'mysql';
-const db = DatabaseService.getInstance(dbType);
-
-if (!db) throw new Error('DatabaseService failed to initialize');
+const db = DatabaseService.getInstance('sqlite');
 
 export async function OPTIONS() {
     return new Response(null, {
-        status: 204,
+        status: 200,
         headers: {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+            'Access-Control-Allow-Headers': '*',
         },
     });
 }
+
 
 export async function GET() {
     try {
         await db.connect();
         const records = await db.getRecords();
         return NextResponse.json(records);
-    } catch (error) {
-        return NextResponse.json({ error: `Failed to fetch records: ${error}` }, { status: 500 });
+    } catch (error: any) {
+        return NextResponse.json({ error: `Failed to fetch records: ${error.message}` }, { status: 500 });
     } finally {
         await db.close();
     }
