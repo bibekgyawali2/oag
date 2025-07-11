@@ -7,71 +7,93 @@ interface DatabaseAdapter {
     connect(): Promise<void>;
     query(sql: string, params?: any[]): Promise<any>;
     close(): Promise<void>;
+    isConnected(): boolean; // New method to check connection status
 }
 
 class SQLiteAdapter implements DatabaseAdapter {
-    private db: Database;
+    private db: Database | null = null;
+    private isClosed: boolean = false;
 
     constructor() {
-        this.db = new Database('records.db');
+        this.db = new Database('records.db', (err) => {
+            if (err) {
+                console.error('Failed to open SQLite database:', err);
+                this.isClosed = true;
+            }
+        });
+    }
+
+    isConnected(): boolean {
+        return this.db !== null && !this.isClosed;
     }
 
     async connect(): Promise<void> {
+        if (this.isConnected()) {
+            return; // Already connected
+        }
         return new Promise((resolve, reject) => {
-            this.db.serialize(() => {
-                // Create records table with updated schema
-                this.db.run(`
-          CREATE TABLE IF NOT EXISTS records (
-            id TEXT PRIMARY KEY,
-            chalaniNumber TEXT,
-            date TEXT,
-            dartaNumber TEXT,
-            dartaMiti TEXT,
-            officeName TEXT,
-            fiscalYear TEXT,
-            asul REAL,
-            aniyamit REAL,
-            paperProof REAL,
-            peski REAL,
-            total REAL,
-            chalaniNumber2 TEXT,
-            chalaniDate TEXT,
-            ministry TEXT,
-            barsikPratibedan TEXT,
-            samparisayad_anurodh_rakam REAL,
-            lagat_katta_ko_bibarad TEXT,
-            samparisad_huna_nasakeko TEXT
-          )
-        `, (err) => {
-                    if (err) return reject(err);
-                });
+            this.db = new Database('records.db', (err) => {
+                if (err) {
+                    this.isClosed = true;
+                    return reject(err);
+                }
+                this.isClosed = false;
+                this.db!.serialize(() => {
+                    this.db!.run(`
+                        CREATE TABLE IF NOT EXISTS records (
+                            id TEXT PRIMARY KEY,
+                            chalaniNumber TEXT,
+                            date TEXT,
+                            dartaNumber TEXT,
+                            dartaMiti TEXT,
+                            officeName TEXT,
+                            fiscalYear TEXT,
+                            asul REAL,
+                            aniyamit REAL,
+                            paperProof REAL,
+                            peski REAL,
+                            total REAL,
+                            chalaniNumber2 TEXT,
+                            chalaniDate TEXT,
+                            ministry TEXT,
+                            barsikPratibedan TEXT,
+                            samparisayad_anurodh_rakam REAL,
+                            lagat_katta_ko_bibarad TEXT,
+                            samparisad_huna_nasakeko TEXT
+                        )
+                    `, (err) => {
+                        if (err) return reject(err);
+                    });
 
-                // Create users table
-                this.db.run(`
-          CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            email TEXT UNIQUE,
-            password TEXT,
-            createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-          )
-        `, (err) => {
-                    if (err) reject(err);
-                    resolve();
+                    this.db!.run(`
+                        CREATE TABLE IF NOT EXISTS users (
+                            id TEXT PRIMARY KEY,
+                            email TEXT UNIQUE,
+                            password TEXT,
+                            createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+                        )
+                    `, (err) => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
                 });
             });
         });
     }
 
     async query(sql: string, params: any[] = []): Promise<any> {
+        if (!this.isConnected()) {
+            throw new Error('Database is closed or not initialized');
+        }
         return new Promise((resolve, reject) => {
             if (sql.trim().toLowerCase().startsWith('select')) {
-                this.db.all(sql, params, (err, rows) => {
-                    if (err) reject(err);
+                this.db!.all(sql, params, (err, rows) => {
+                    if (err) return reject(err);
                     resolve(rows);
                 });
             } else {
-                this.db.run(sql, params, function (err) {
-                    if (err) reject(err);
+                this.db!.run(sql, params, function (err) {
+                    if (err) return reject(err);
                     resolve({ insertId: this.lastID, changes: this.changes });
                 });
             }
@@ -79,9 +101,14 @@ class SQLiteAdapter implements DatabaseAdapter {
     }
 
     async close(): Promise<void> {
+        if (!this.isConnected()) {
+            return; // Already closed
+        }
         return new Promise((resolve, reject) => {
-            this.db.close((err) => {
-                if (err) reject(err);
+            this.db!.close((err) => {
+                if (err) return reject(err);
+                this.isClosed = true;
+                this.db = null;
                 resolve();
             });
         });
@@ -95,66 +122,82 @@ class MySQLAdapter implements DatabaseAdapter {
         user: process.env.MYSQL_USER || 'root',
         password: process.env.MYSQL_PASSWORD || '',
         database: process.env.MYSQL_DATABASE || 'records_db',
+        waitForConnections: true,
+        connectionLimit: 10, // Connection pool for MySQL
+        queueLimit: 0,
     };
+    private pool: mysql.Pool;
+
+    constructor() {
+        this.pool = mysql.createPool(this.config);
+    }
+
+    isConnected(): boolean {
+        return this.connection !== null;
+    }
 
     async connect(): Promise<void> {
-        this.connection = await mysql.createConnection(this.config);
+        this.connection = await this.pool.getConnection();
         await this.connection.execute(`
-      CREATE TABLE IF NOT EXISTS records (
-        id VARCHAR(255) PRIMARY KEY,
-        chalaniNumber VARCHAR(255),
-        date VARCHAR(255),
-        dartaNumber VARCHAR(255),
-        dartaMiti VARCHAR(255),
-        officeName VARCHAR(255),
-        fiscalYear VARCHAR(255),
-        asul DECIMAL(10,2),
-        aniyamit DECIMAL(10,2),
-        paperProof DECIMAL(10,2),
-        peski DECIMAL(10,2),
-        total DECIMAL(10,2),
-        chalaniNumber2 VARCHAR(255),
-        chalaniDate VARCHAR(255),
-        ministry VARCHAR(255),
-        barsikPratibedan VARCHAR(255),
-        samparisayad_anurodh_rakam DECIMAL(10,2),
-        lagat_katta_ko_bibarad TEXT,
-        samparisad_huna_nasakeko TEXT
-      )
-    `);
+            CREATE TABLE IF NOT EXISTS records (
+                id VARCHAR(255) PRIMARY KEY,
+                chalaniNumber VARCHAR(255),
+                date VARCHAR(255),
+                dartaNumber VARCHAR(255),
+                dartaMiti VARCHAR(255),
+                officeName VARCHAR(255),
+                fiscalYear VARCHAR(255),
+                asul DECIMAL(10,2),
+                aniyamit DECIMAL(10,2),
+                paperProof DECIMAL(10,2),
+                peski DECIMAL(10,2),
+                total DECIMAL(10,2),
+                chalaniNumber2 VARCHAR(255),
+                chalaniDate VARCHAR(255),
+                ministry VARCHAR(255),
+                barsikPratibedan VARCHAR(255),
+                samparisayad_anurodh_rakam DECIMAL(10,2),
+                lagat_katta_ko_bibarad TEXT,
+                samparisad_huna_nasakeko TEXT
+            )
+        `);
         await this.connection.execute(`
-      CREATE TABLE IF NOT EXISTS users (
-        id VARCHAR(255) PRIMARY KEY,
-        email VARCHAR(255) UNIQUE,
-        password VARCHAR(255),
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+            CREATE TABLE IF NOT EXISTS users (
+                id VARCHAR(255) PRIMARY KEY,
+                email VARCHAR(255) UNIQUE,
+                password VARCHAR(255),
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        this.connection.off; // Release connection back to pool
     }
 
     async query(sql: string, params: any[] = []): Promise<any> {
-        if (!this.connection) throw new Error('Database not connected');
-        const [results] = await this.connection.execute(sql, params);
-        return results;
+        const connection = await this.pool.getConnection();
+        try {
+            const [results] = await connection.execute(sql, params);
+            return results;
+        } finally {
+            connection.release(); // Always release connection back to pool
+        }
     }
 
     async close(): Promise<void> {
-        if (this.connection) {
-            await this.connection.end();
-        }
+        await this.pool.end();
+        this.connection = null;
     }
 }
 
 export class DatabaseService {
     private adapter: DatabaseAdapter;
-    private static instance: DatabaseService;
+    private static instance: DatabaseService | null = null;
 
     private constructor(dbType: 'sqlite' | 'mysql' = 'sqlite') {
         this.adapter = dbType === 'sqlite' ? new SQLiteAdapter() : new MySQLAdapter();
     }
 
     static getInstance(dbType: 'sqlite' | 'mysql' = 'sqlite'): DatabaseService {
-        if (!DatabaseService.instance) {
+        if (!DatabaseService.instance || DatabaseService.instance.adapter.constructor.name !== (dbType === 'sqlite' ? 'SQLiteAdapter' : 'MySQLAdapter')) {
             DatabaseService.instance = new DatabaseService(dbType);
         }
         return DatabaseService.instance;
@@ -166,13 +209,13 @@ export class DatabaseService {
 
     async saveRecord(record: FormDataInterface): Promise<void> {
         const sql = `
-      INSERT INTO records (
-        id, chalaniNumber, date, dartaNumber, dartaMiti, officeName,
-        fiscalYear, asul, aniyamit, paperProof, peski, total,
-        chalaniNumber2, chalaniDate, ministry, barsikPratibedan,
-        samparisayad_anurodh_rakam, lagat_katta_ko_bibarad, samparisad_huna_nasakeko
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+            INSERT INTO records (
+                id, chalaniNumber, date, dartaNumber, dartaMiti, officeName,
+                fiscalYear, asul, aniyamit, paperProof, peski, total,
+                chalaniNumber2, chalaniDate, ministry, barsikPratibedan,
+                samparisayad_anurodh_rakam, lagat_katta_ko_bibarad, samparisad_huna_nasakeko
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
         const params = [
             record.id,
             record.chalaniNumber,
@@ -223,4 +266,25 @@ export class DatabaseService {
     async close(): Promise<void> {
         await this.adapter.close();
     }
+
+    // Graceful shutdown for application termination
+    static async shutdown(): Promise<void> {
+        if (DatabaseService.instance) {
+            await DatabaseService.instance.close();
+            DatabaseService.instance = null;
+        }
+    }
 }
+
+// Handle process termination to ensure database is closed gracefully
+process.on('SIGINT', async () => {
+    console.log('Closing database connection...');
+    await DatabaseService.shutdown();
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('Closing database connection...');
+    await DatabaseService.shutdown();
+    process.exit(0);
+});
