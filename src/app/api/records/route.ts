@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseService } from '@/lib/db';
 import { FormDataInterface } from '@/types/form';
 
-export const runtime = 'nodejs'; // ✅ Force node runtime
+export const runtime = 'edge';
 
 const dbType = (process.env.DB_TYPE ?? 'sqlite') as 'sqlite' | 'mysql';
 const db = DatabaseService.getInstance(dbType);
