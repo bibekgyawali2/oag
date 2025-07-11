@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { DatabaseService } from '@/lib/db';
 
+
+export async function OPTIONS() {
+    return NextResponse.json({}, {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+        },
+    });
+}
+
 export async function POST(req: NextRequest) {
     try {
         const { email, password } = await req.json();
