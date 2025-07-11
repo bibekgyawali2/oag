@@ -4,7 +4,7 @@ import { FormDataInterface } from '@/types/form';
 
 const db = DatabaseService.getInstance('sqlite');
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 
 export async function OPTIONS() {
